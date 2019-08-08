@@ -1,31 +1,11 @@
 import React, { Component } from 'react';
 import './App.css';
 
-//выполнено до 96 стр, глава Оператор расширения ES6
-const list = [
-  {
-    title: 'React',
-    url: 'https://facebook.github.io/react/',
-    author: 'Jordan Walke',
-    num_comments: 3,
-    points: 4,
-    objectID: 0,
-  },
-  {
-    title: 'Redux',
-    url: 'https://github.com/reactjs/redux',
-    author: 'Dan Abramov, Andrew Clark',
-    num_comments: 2,
-    points: 5,
-    objectID: 1,
-  },
-];
-
 const DEFAULT_QUERY = 'redux';
 const PATH_BASE = 'https://hn.algolia.com/api/v1';
 const PATH_SEARCH = '/search';
 const PARAM_SEARCH = 'query=';
-const url = `${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${DEFAULT_QUERY}`;
+// const url = `${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${DEFAULT_QUERY}`;
 
 const isSearched = searchTerm => item =>
   item.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -62,8 +42,9 @@ class App extends Component {
 
   onDismiss(id) {
     const isNotId = item => item.objectID !== id;
-    const updatedList = this.state.list.filter(isNotId);
-    this.setState({ list: updatedList });
+    const updatedHits = this.state.result.hits.filter(isNotId);
+    const result = { ...this.state.result, hits: updatedHits }
+    this.setState({ result });
   }
 
   render() {
@@ -128,11 +109,7 @@ const Table = ({ list, pattern, onDismiss }) =>
     )}
   </div>;
 
-const Button = ({
-                  onClick,
-                  className = '',
-                  children,
-                }) =>
+const Button = ({onClick, className = '', children,}) =>
   <button
     onClick={onClick}
     className={className}
