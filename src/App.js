@@ -34,7 +34,8 @@ class App extends Component {
       searchTerm: DEFAULT_QUERY,
       error: null,
       isLoading: false,
-      sortKey: 'NONE'
+      sortKey: 'NONE',
+      isSortReverse: false
     };
 
     this.needsToSearchTopStories = this.needsToSearchTopStories.bind(this);
@@ -118,11 +119,12 @@ class App extends Component {
   }
 
   onSort(sortKey) {
-    this.setState({ sortKey });
+    const isSortReverse = this.state.sortKey === sortKey && !this.state.isSortReverse;
+    this.setState({ sortKey, isSortReverse });
   }
 
   render() {
-    const { searchTerm, results, searchKey, error, isLoading, sortKey } = this.state;
+    const { searchTerm, results, searchKey, error, isLoading, sortKey, isSortReverse } = this.state;
     const page = (results && results[searchKey] && results[searchKey].page) || 0;
     const list = (results && results[searchKey] && results[searchKey].hits) || [];
 
@@ -148,6 +150,7 @@ class App extends Component {
           : <Table
               list={list}
               sortKey={sortKey}
+              isSortReverse={isSortReverse}
               onSort={this.onSort}
               onDismiss={this.onDismiss}
             />
@@ -175,40 +178,46 @@ const Search = ({value, onChange, onSubmit, children}) =>
     </button>
   </form>;
 
-const Table = ({ list, onDismiss, onSort, sortKey }) =>
-  <div className="table">
-    <div className="table-header">
+const Table = ({ list, onDismiss, onSort, sortKey, isSortReverse }) => {
+  const sortedList = SORTS[sortKey](list);
+  const reverseSortedList = isSortReverse
+    ? sortedList.reverse()
+    : sortedList;
+
+  return(
+    <div className="table">
+      <div className="table-header">
       <span style={{ width: '40%' }}>
-        <Sort sortKey={'TITLE'} onSort={onSort}>Заголовок</Sort>
+        <Sort sortKey={'TITLE'} onSort={onSort} activeSortKey={sortKey}>Заголовок</Sort>
       </span>
-      <span style={{ width: '30%' }}>
-        <Sort sortKey={'AUTHOR'} onSort={onSort}>Автор</Sort>
+        <span style={{ width: '30%' }}>
+        <Sort sortKey={'AUTHOR'} onSort={onSort} activeSortKey={sortKey}>Автор</Sort>
       </span>
-      <span style={{ width: '10%' }}>
-        <Sort sortKey={'COMMENTS'} onSort={onSort}>Комментарии</Sort>
+        <span style={{ width: '10%' }}>
+        <Sort sortKey={'COMMENTS'} onSort={onSort} activeSortKey={sortKey}>Комментарии</Sort>
       </span>
-      <span style={{ width: '10%' }}>
-        <Sort sortKey={'POINTS'} onSort={onSort}>Очки</Sort>
+        <span style={{ width: '10%' }}>
+        <Sort sortKey={'POINTS'} onSort={onSort} activeSortKey={sortKey}>Очки</Sort>
       </span>
-      <span style={{ width: '10%' }}>Архив</span>
-    </div>
+        <span style={{ width: '10%' }}>Архив</span>
+      </div>
 
 
-    {SORTS[sortKey](list).map(item =>
-      <div key={item.objectID} className="table-row">
+      {reverseSortedList.map(item =>
+        <div key={item.objectID} className="table-row">
         <span style={{ width: '40%' }}>
           <a href={item.url}>{item.title}</a>
         </span>
-        <span style={{ width: '30%' }}>
+          <span style={{ width: '30%' }}>
           {item.author}
         </span>
-        <span style={{ width: '10%' }}>
+          <span style={{ width: '10%' }}>
           {item.num_comments}
         </span>
-        <span style={{ width: '10%' }}>
+          <span style={{ width: '10%' }}>
           {item.points}
         </span>
-        <span style={{ width: '10%' }}>
+          <span style={{ width: '10%' }}>
           <Button
             onClick={() => onDismiss(item.objectID)}
             className="button-inline"
@@ -216,19 +225,32 @@ const Table = ({ list, onDismiss, onSort, sortKey }) =>
             Dismiss
           </Button>
         </span>
-      </div>
-    )}
-  </div>;
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 Table.propTypes = {
   list: PropTypes.array.isRequired,
   onDismiss: PropTypes.func.isRequired,
 };
 
-const Sort = ({ sortKey, onSort, children }) =>
-  <Button onClick={() => onSort(sortKey)} className="button-inline">
-    {children}
-  </Button>;
+const Sort = ({ sortKey, activeSortKey, onSort, children }) => {
+  const sortClass = ['button-inline'];
+
+  if (sortKey === activeSortKey) {
+    sortClass.push('button-active');
+  }
+
+  return (
+    <Button onClick={() => onSort(sortKey)} className={sortClass.join(' ')}>
+      {children}
+    </Button>
+  );
+};
+
 
 const Button = ({onClick, className = '', children,}) =>
   <button
