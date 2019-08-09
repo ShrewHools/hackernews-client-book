@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import axios from 'axios';
 import PropTypes from 'prop-types';
+import { sortBy } from 'lodash';
 import './App.css';
 
 const DEFAULT_QUERY = 'redux';
@@ -13,6 +14,14 @@ const PARAM_PAGE = 'page=';
 const PARAM_HPP = 'hitsPerPage=';
 // const url = `${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${DEFAULT_QUERY}&${PARAM_PAGE}`;
 
+const SORTS = {
+  NONE: list => list,
+  TITLE: list => sortBy(list, 'title'),
+  AUTHOR: list => sortBy(list, 'author'),
+  COMMENTS: list => sortBy(list, 'num_comments').reverse(),
+  POINTS: list => sortBy(list, 'points').reverse(),
+};
+
 class App extends Component {
   _isMounted = false;
 
@@ -24,7 +33,8 @@ class App extends Component {
       searchKey: '',
       searchTerm: DEFAULT_QUERY,
       error: null,
-      isLoading: false
+      isLoading: false,
+      sortKey: 'NONE'
     };
 
     this.needsToSearchTopStories = this.needsToSearchTopStories.bind(this);
@@ -33,6 +43,7 @@ class App extends Component {
     this.fetchSearchTopStories = this.fetchSearchTopStories.bind(this);
     this.onSearchChange = this.onSearchChange.bind(this);
     this.onDismiss = this.onDismiss.bind(this);
+    this.onSort = this.onSort.bind(this);
   }
 
   componentDidMount() {
@@ -106,8 +117,12 @@ class App extends Component {
     });
   }
 
+  onSort(sortKey) {
+    this.setState({ sortKey });
+  }
+
   render() {
-    const { searchTerm, results, searchKey, error, isLoading } = this.state;
+    const { searchTerm, results, searchKey, error, isLoading, sortKey } = this.state;
     const page = (results && results[searchKey] && results[searchKey].page) || 0;
     const list = (results && results[searchKey] && results[searchKey].hits) || [];
 
@@ -132,6 +147,8 @@ class App extends Component {
           </div>
           : <Table
               list={list}
+              sortKey={sortKey}
+              onSort={this.onSort}
               onDismiss={this.onDismiss}
             />
         }
@@ -158,9 +175,26 @@ const Search = ({value, onChange, onSubmit, children}) =>
     </button>
   </form>;
 
-const Table = ({ list, onDismiss }) =>
+const Table = ({ list, onDismiss, onSort, sortKey }) =>
   <div className="table">
-    {list.map(item =>
+    <div className="table-header">
+      <span style={{ width: '40%' }}>
+        <Sort sortKey={'TITLE'} onSort={onSort}>Заголовок</Sort>
+      </span>
+      <span style={{ width: '30%' }}>
+        <Sort sortKey={'AUTHOR'} onSort={onSort}>Автор</Sort>
+      </span>
+      <span style={{ width: '10%' }}>
+        <Sort sortKey={'COMMENTS'} onSort={onSort}>Комментарии</Sort>
+      </span>
+      <span style={{ width: '10%' }}>
+        <Sort sortKey={'POINTS'} onSort={onSort}>Очки</Sort>
+      </span>
+      <span style={{ width: '10%' }}>Архив</span>
+    </div>
+
+
+    {SORTS[sortKey](list).map(item =>
       <div key={item.objectID} className="table-row">
         <span style={{ width: '40%' }}>
           <a href={item.url}>{item.title}</a>
@@ -190,6 +224,11 @@ Table.propTypes = {
   list: PropTypes.array.isRequired,
   onDismiss: PropTypes.func.isRequired,
 };
+
+const Sort = ({ sortKey, onSort, children }) =>
+  <Button onClick={() => onSort(sortKey)} className="button-inline">
+    {children}
+  </Button>;
 
 const Button = ({onClick, className = '', children,}) =>
   <button
